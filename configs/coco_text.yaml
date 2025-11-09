@@ -1,0 +1,50 @@
+OUTPUT_DIR: "checkpoint/mscoco/classname"
+# RESUME: ""
+SEED: 0
+
+no_sim: True 
+no_sim_weights: 0.2
+cutimage: True
+count_list: [2,3]
+
+DATASET:
+  NAME: "mscoco"
+  TEST_SPLIT: "test"
+  IMG_PATH: "MSCOCO_2014"
+  ANNO_PATH: "datasets/MSCOCO"
+  TEXT_PATH: "redefine_classname"
+
+
+INPUT:
+  TEST_SIZE: (224, 224)
+
+DATALOADER:
+  NUM_WORKERS: 4
+  TRAIN_X:
+    BATCH_SIZE: 512
+    SHUFFLE: True
+  TEST:
+    BATCH_SIZE: 100
+    SHUFFLE: False
+
+MODEL:
+  INIT_WEIGHTS: ""
+  BACKBONE:
+    NAME: "ViT-B/16"
+    PRETRAINED: True
+
+OPTIM:
+  NAME: "sgd"
+  LR: 1e-4
+  MAX_EPOCH: 30
+  LR_SCHEDULER: "cosine"
+  WARMUP_EPOCH: 1
+  WARMUP_TYPE: "constant"
+  WARMUP_CONS_LR: 1e-5
+
+TRAINER:
+  TEXT:
+    N_CLSN: 4
+
+TRAIN:
+  PRINT_FREQ: 5

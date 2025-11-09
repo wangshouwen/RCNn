@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0 python train_text.py --config_file configs/nuswide_text.yaml
