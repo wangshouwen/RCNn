@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ccircle cx=%278%27 cy=%278%27 r=%277%27 fill=%27%234b3bc4%27/%3E%3C/svg%3E">
+<title>Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity</title>
+<meta name="description" content="RCNn (ICCV 2025): multi-label zero-shot learning that learns what class names mean from LLM-written descriptions, with text-only training and a frozen vision-language backbone. Code and results.">
+<meta property="og:title" content="RCNn — ICCV 2025">
+<meta property="og:description" content="RCNn (ICCV 2025): multi-label zero-shot learning that learns what class names mean from LLM-written descriptions, with text-only training and a frozen vision-language backbone. Code and results.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://wangshouwen.github.io/RCNn/static/social.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Paper title, headline result and framework figure">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15140f" media="(prefers-color-scheme: dark)">
+<meta name="citation_title" content="Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity">
+<meta name="citation_author" content="Wang, Shouwen">
+<meta name="citation_author" content="Wan, Qian">
+<meta name="citation_author" content="Gao, Junbin">
+<meta name="citation_author" content="Zeng, Zhigang">
+<meta name="citation_conference_title" content="Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)">
+<meta name="citation_publication_date" content="2025">
+<meta name="citation_firstpage" content="1968">
+<meta name="citation_lastpage" content="1978">
+<meta name="citation_pdf_url" content="https://openaccess.thecvf.com/content/ICCV2025/papers/Wang_Language-Driven_Multi-Label_Zero-Shot_Learning_with_Semantic_Granularity_ICCV_2025_paper.pdf">
+<style>
+:root {
+  --accent: #4b3bc4;
+  --accent-soft: #eeebfd;
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --border: #e6e4df;
+  --border-strong: #d4d1c9;
+  --ink: #1c1b19;
+  --ink-2: #4a4843;
+  --ink-3: #6c6961;
+  --code-bg: #1f1e1c;
+  --code-ink: #e9e7e1;
+  --shadow: 0 1px 2px rgba(28,27,25,.04), 0 8px 24px rgba(28,27,25,.05);
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #a79bf5;
+    --accent-soft: #241f45;
+    --bg: #15140f;
+    --surface: #1d1c18;
+    --border: #322f29;
+    --border-strong: #423e36;
+    --ink: #f2f0ea;
+    --ink-2: #c3bfb5;
+    --ink-3: #99958b;   /* >=4.8:1 on every dark surface, incl. the accent tint */
+    --code-bg: #0e0d0b;
+    --code-ink: #e9e7e1;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.28);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  padding-inline: 20px;
+}
+
+/* ---------- hero ---------- */
+
+header.hero {
+  padding-block: 64px 32px;
+  text-align: center;
+}
+.masthead { padding-bottom: 44px; border-bottom: 1px solid var(--border); }
+
+h1.title {
+  font-size: clamp(27px, 4.6vw, 42px);
+  line-height: 1.18;
+  letter-spacing: -.021em;
+  font-weight: 700;
+  margin: 0 0 26px;
+  text-wrap: balance;
+}
+
+/* ---------- link buttons ---------- */
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 560;
+  border: 1px solid var(--ink);
+  transition: transform .12s ease, opacity .12s ease;
+}
+.btn:hover { transform: translateY(-1px); opacity: .88; }
+.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--border-strong);
+}
+.btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn svg { width: 15px; height: 15px; flex: none; }
+
+/* ---------- sections ---------- */
+
+section { padding-block: 52px; border-bottom: 1px solid var(--border); }
+section:last-of-type { border-bottom: none; }
+
+h2 {
+  font-size: 12px;
+  font-weight: 680;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 22px;
+}
+
+h3 {
+  font-size: 18px;
+  font-weight: 640;
+  letter-spacing: -.01em;
+  margin: 0 0 8px;
+}
+
+p { margin: 0 0 16px; color: var(--ink-2); }
+p.lead { font-size: 17.5px; color: var(--ink); }
+/* the abstract opens the page, under the title and links, in the paper's own words */
+.hero-abs { max-width: 76ch; margin: 44px auto 0; font-size: 17.5px; text-align: left; scroll-margin-top: 58px; }
+p:last-child { margin-bottom: 0; }
+footer p { max-width: 76ch; margin-inline: auto; }
+
+/* ---------- figures ---------- */
+
+figure {
+  margin: 0 0 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+figure img {
+  display: block;
+  max-width: 100%;      /* never overflow the figure */
+  height: auto;         /* width comes from the width attribute (= natural size, so never upscaled); with
+                           height:auto the width/height attributes reserve the right space before loading */
+  margin-inline: auto;
+  border-radius: 4px;
+}
+figcaption {
+  margin-top: 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+figcaption b { color: var(--ink-2); font-weight: 620; }
+/* paper figures are dense; a phone shows them too small to read, so say they open full size */
+figure > a { position: relative; display: block; cursor: zoom-in; }
+figure > a::after {
+  content: "Full size"; position: absolute; right: 8px; bottom: 8px;
+  font-size: 11.5px; font-weight: 600; line-height: 1; padding: 5px 9px; border-radius: 999px;
+  background: rgba(28,27,25,.72); color: #fff; opacity: 0; transition: opacity .15s ease;
+}
+figure > a:hover::after, figure > a:focus-visible::after { opacity: 1; }
+/* touch screens cannot hover, so the badge sits under the figure instead of covering it */
+@media (hover: none) {
+  figure > a::after { position: static; display: table; margin: 8px 0 0 auto; opacity: 1;
+                      background: var(--accent-soft); color: var(--accent); }
+}
+
+/* ---------- idea cards ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-top: 26px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.card .num {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.card p { font-size: 14.5px; margin: 0; }
+@media (min-width: 640px) {
+  .cards:has(> .card:nth-child(4)) { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ---------- tables ---------- */
+
+.tablewrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 480px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.tcap {
+  font-size: 13.5px;
+  color: var(--ink-3);
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+.tcap b { color: var(--ink-2); font-weight: 620; }
+.tablewrap:focus-visible, .scrollx:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+th, td { padding: 8px 14px; text-align: right; white-space: nowrap; }
+th:first-child, td:first-child,
+th.l, td.l { text-align: left; }
+thead th {
+  font-weight: 620;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--border-strong);
+}
+thead tr.group th {
+  border-bottom: none;
+  padding-bottom: 2px;
+  text-align: center;   /* sit over the columns the label spans */
+  color: var(--ink-2);
+  letter-spacing: .02em;
+}
+tbody td, tbody th { border-top: 1px solid var(--border); color: var(--ink-2); font-weight: inherit; }
+tbody tr.ours > * { color: var(--ink); border-top-color: var(--border-strong); }
+tbody tr.ours > :first-child { color: var(--accent); background: var(--accent-soft); font-weight: 640; }
+/* the method column stays put while a wide table scrolls sideways */
+tr:not(.block) > :first-child {
+  position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: inset -1px 0 0 var(--border);
+}
+/* a dataset name heading the rows that follow it */
+tbody tr.block th { text-align: left; font-size: 12.5px; font-weight: 650; color: var(--ink-2);
+                    background: var(--bg); border-top: 1px solid var(--border-strong); padding-top: 9px; }
+/* the dataset name stays in view while the table scrolls sideways */
+tbody tr.block th > span { position: sticky; left: 14px; }
+td.best { font-weight: 700; }
+td.second { font-style: italic; }
+.heatkey { font-size: 12.5px; color: var(--ink-3); margin: 0 0 14px; }
+
+.tnote { font-size: 13px; color: var(--ink-3); margin: 0 0 30px; }
+
+/* ---------- code ---------- */
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  overflow-x: auto;
+  font-size: 13.5px;
+  line-height: 1.7;
+  margin: 0 0 16px;
+  border: 1px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+}
+pre code { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+code.inline {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: .89em;
+  overflow-wrap: anywhere;   /* long file paths must not widen the page */
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+
+/* ---------- footer ---------- */
+
+footer {
+  padding-block: 40px 56px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  text-align: center;
+  border-top: 1px solid var(--border);
+  overflow-wrap: anywhere;   /* a long photo title must not widen the page on a narrow phone */
+}
+footer a { color: var(--ink-2); }
+
+a { color: var(--accent); }
+
+/* ---------- skip link: hidden until a keyboard user tabs to it ---------- */
+.skip { position: absolute; left: -9999px; top: 8px; z-index: 30; padding: 8px 14px; border-radius: 8px;
+        background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+.skip:focus { left: 12px; }
+
+/* ---------- section nav: a sticky chip bar along the top ---------- */
+.toc {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  overflow-x: auto;
+  padding: 7px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.toc::-webkit-scrollbar { display: none; }
+/* on narrow screens the chips overflow; a fade at each edge says there is more to scroll */
+.toc::before, .toc::after { content: ""; display: none; position: sticky; flex: none; align-self: stretch;
+                            width: 22px; pointer-events: none; z-index: 1; }
+.toc::before { left: -14px; margin: -7px -8px -7px -14px; background: linear-gradient(90deg, var(--bg), transparent); }
+.toc::after { right: -14px; margin: -7px -14px -7px -8px; background: linear-gradient(-90deg, var(--bg), transparent); }
+@media (max-width: 979px) { .toc::before, .toc::after { display: block; } }
+.toc a {
+  flex: none;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+.toc a:hover { color: var(--accent); background: var(--accent-soft); }
+.toc a.active { color: var(--accent); background: var(--accent-soft); font-weight: 620; }
+.toc a.cta { color: var(--ink-2); font-weight: 560; }
+
+/* anchors must clear the sticky bar */
+section { scroll-margin-top: 58px; }
+
+/* the section nav stays a sticky bar along the top at every width;
+   on wide screens its chips sit centred over the content column */
+@media (min-width: 980px) {
+  .toc a:first-of-type { margin-left: auto; }
+  .toc a:last-child { margin-right: auto; }
+}
+
+/* ---------- results chart ----------
+   Categorical slots are the dataviz reference theme 1-4, validated for both
+   modes. The light-mode contrast WARN on slots 3-4 is relieved by the direct
+   labels on every line plus the data tables directly below. */
+.chart {
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #4a3aa7;
+  --s8: #e34948;
+  position: relative;
+  margin: 0 0 14px;
+  padding: 16px 16px 10px;
+}
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid { stroke: #e1e0d9; stroke-width: 1; }
+.chart .axis { stroke: #c3c2b7; stroke-width: 1; }
+.chart .tick, .chart .axis-label { fill: var(--ink-3); font-size: 12px; }
+.chart .axis-label { font-size: 11px; letter-spacing: .04em; }
+.chart .line { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; }
+.chart .dot { fill: var(--c); stroke: var(--surface); stroke-width: 2; }
+.chart .direct { fill: var(--ink-2); fill: color-mix(in srgb, var(--c) 72%, var(--ink)); font-size: 12.5px; font-weight: 620; }
+.chart .leader { fill: none; stroke: var(--c); stroke-width: 1.5; }
+.chart .series.ours .line { stroke-width: 3; }
+.chart .series.dim { opacity: .3; }   /* faded: baselines on a different backbone */
+.chart .lg.dim { opacity: .55; }
+.chart .ref { stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .ref-ring { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.chart .series.ours .direct { font-weight: 700; }
+.chart .crosshair { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .crosshair[hidden] { display: none; }
+.chart .tip div.me { color: var(--accent); font-weight: 650; }
+.chart .tip.two { max-width: 62%; }
+.chart .tip.two .rows { column-count: 2; column-gap: 20px; }
+.chart .tip .rows > div { break-inside: avoid; }
+.chart .margin-lab { fill: var(--ink); font-size: 12.5px; font-weight: 680;
+                     paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.chart .margin-lab.small { font-size: 10.5px; }
+.chart .margin-lab.tiny { font-size: 9.5px; }
+.chart .legend {
+  display: none; flex-wrap: wrap; gap: 6px 16px;
+  margin-top: 10px;
+  font-size: 12.5px; color: var(--ink-2);
+}
+.chart .lg { display: inline-flex; align-items: center; gap: 6px; }
+.chart .lg.me { color: var(--accent); font-weight: 650; }
+.chart .lg::before {
+  content: ""; width: 14px; height: 3px; border-radius: 2px; background: var(--c);
+}
+.ch-toggles { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 14px; }
+.ch-tg { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.ch-tg > span { font-size: 12px; color: var(--ink-3); margin-right: 2px; }
+.ch-tg button {
+  font: inherit; font-size: 12.5px; line-height: 1;
+  padding: 6px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: transparent; color: var(--ink-2);
+}
+.ch-tg button:hover { border-color: var(--accent); color: var(--accent); }
+.ch-tg button.on {
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 620;
+}
+.chart .bar-fill { fill: var(--border-strong); }
+.chart .bar.ours .bar-fill { fill: var(--accent); }
+.chart .bar-name { fill: var(--ink-2); font-size: 12.5px; }
+.chart .bar.ours .bar-name { fill: var(--accent); font-weight: 680; }
+.chart .bar-val { fill: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums;   /* the halo keeps gridlines from crossing the digits */
+                  paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.chart .bar.ours .bar-val { fill: var(--ink); font-weight: 680; }
+.chart .bar-gap { fill: var(--accent); font-weight: 680; }
+.chart .ch-plot + .ch-plot { margin-top: 10px; }
+.chart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+.chart .tip {
+  position: absolute; top: 12px;
+  max-width: 44%;
+  pointer-events: none; z-index: 3;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 8px 11px;
+  font-size: 12.5px; line-height: 1.5; color: var(--ink-2);
+  box-shadow: var(--shadow); white-space: nowrap;
+}
+.chart .tip b { color: var(--ink); }
+.chart .tip .sw {
+  display: inline-block; width: 9px; height: 3px; border-radius: 2px;
+  margin-right: 6px; vertical-align: middle;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .chart {
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  }
+  :root:not([data-theme="light"]) .chart .grid { stroke: #2c2c2a; }
+  :root:not([data-theme="light"]) .chart .axis { stroke: #383835; }
+  :root:not([data-theme="light"]) figure img { filter: brightness(.88); }   /* paper figures are white; take the glare off */
+}
+
+/* ---------- relationship map ---------- */
+.relmap { margin: 0 0 8px; padding: 18px 18px 14px; }
+.relmap svg { display: block; width: 100%; height: auto; color: var(--ink-3); }
+.relmap .rm-axis { fill: var(--ink-3); font-size: 12px; letter-spacing: .04em; }
+.relmap .rm-arrow { stroke: var(--border-strong); stroke-width: 1; }
+.relmap .rm-div { stroke: var(--border); stroke-width: 1; }
+.relmap .rm-col { fill: var(--ink-2); font-size: 14px; font-weight: 620; }
+.relmap .rm-sub { fill: var(--ink-3); font-size: 11.5px; }
+.relmap .rm-bar { fill: var(--surface); stroke: var(--border-strong); stroke-width: 1; }
+.relmap .rm-bar.me { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.relmap .rm-name { fill: var(--ink-2); font-size: 15px; font-weight: 650; }
+.relmap .rm-name.me { fill: var(--accent); }
+.relmap .rm-meta { fill: var(--ink-3); font-size: 11.5px; }
+.relmap .rm-you { fill: var(--accent); font-size: 11px; font-weight: 680; letter-spacing: .06em; }
+.relmap .rm-go { fill: var(--ink-3); font-size: 15px; }
+.relmap .rm-link { cursor: pointer; }
+.relmap .rm-link:hover .rm-bar { stroke: var(--accent); fill: var(--accent-soft); }
+.relmap .rm-link:hover .rm-name, .relmap .rm-link:hover .rm-go { fill: var(--accent); }
+
+.relmap-list { display: none; list-style: none; margin: 0; padding: 0; gap: 8px; }
+.relmap-list li > a, .relmap-list li > div {
+  display: block; position: relative; padding: 10px 34px 10px 12px;
+  border: 1px solid var(--border-strong); border-radius: 9px;
+  color: var(--ink-2); text-decoration: none; font-size: 14px;
+}
+.relmap-list .me > div { border: 2px solid var(--accent); background: var(--accent-soft); }
+.relmap-list b { color: var(--ink); }
+.relmap-list .me b, .relmap-list em { color: var(--accent); }
+.relmap-list span { display: block; font-size: 12.5px; color: var(--ink-3); }
+.relmap-list em {
+  display: block; margin-top: 4px; font-style: normal;
+  font-size: 11px; font-weight: 680; letter-spacing: .06em; text-transform: uppercase;
+}
+.relmap-list i { position: absolute; top: 10px; right: 12px; font-style: normal; color: var(--ink-3); font-size: 15px; }
+.relmap-list a:hover { border-color: var(--accent); }
+
+/* ---------- disclosure for the full tables ---------- */
+details.more { margin: 0 0 30px; }
+details.more > summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 560;
+  color: var(--ink-2);
+  padding: 7px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+}
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: "+"; color: var(--accent); font-weight: 700; }
+details.more[open] > summary::before { content: "\2212"; }
+details.more > summary:hover { border-color: var(--accent); color: var(--accent); }
+details.more > .inner { padding-top: 22px; }
+
+/* ---------- playable demos ---------- */
+.demo {
+  margin-top: 30px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.demo h3 { margin-bottom: 10px; }
+.demo > p:last-of-type { margin-bottom: 0; }
+.demo-ctl { display: flex; align-items: center; gap: 12px; margin: 18px 0 14px; flex-wrap: wrap; }
+.demo-ctl label { font-size: 13px; color: var(--ink-3); }
+.demo-sel {
+  font: inherit; font-size: 13.5px; padding: 6px 10px;
+  border: 1px solid var(--border-strong); border-radius: 8px;
+  background: var(--bg); color: var(--ink);
+}
+
+/* ---------- method demos ---------- */
+.desc-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; margin-top: 16px; }
+.desc-cols h4 { margin: 0 0 8px; font-size: 13px; font-weight: 680; color: var(--accent); }
+.desc-cols h4 span { display: block; font-weight: 400; font-size: 11.5px; color: var(--ink-3); }
+.desc-cols ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.desc-cols li { margin-bottom: 6px; }
+.gran { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 16px 0; }
+.gran span { padding: 6px 12px; border-radius: 999px; font-size: 13.5px; border: 1px solid var(--border-strong); color: var(--ink-2); }
+.gran .g1 { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 620; }
+.gran .ar { border: none; padding: 0; color: var(--ink-3); }
+.gran .miss { border-style: dashed; color: var(--ink-3); }   /* correct, but not tagged */
+.kinds { margin: 0; padding-left: 20px; color: var(--ink-2); }
+.kinds li { margin: 4px 0; }
+
+/* ---------- multi-snippet aggregation ---------- */
+.ms-body { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 8px 28px; align-items: start; }
+@media (max-width: 700px) { .ms-body { grid-template-columns: minmax(0, 1fr); } }   /* stacked: photo, then buttons and table */
+.ms-wrap { position: relative; max-width: 300px; margin-top: 4px; }
+.ms-side .demo-ctl { margin-top: 0; }
+.ms-side .tnote { margin-bottom: 12px; }
+.ms-wrap img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.ms-grid { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+           filter: drop-shadow(0 0 .6px rgba(0,0,0,.8)); }   /* keeps white lines visible on bright patches */
+.ms-grid line.g2 { stroke: #fff; stroke-width: .9; opacity: .95; }
+.ms-grid line.g3 { stroke: var(--accent); stroke-width: .7; opacity: .95; stroke-dasharray: 3 2; }
+.ms-tab { min-width: 0; }   /* four short columns: fits a phone without scrolling */
+.ms-tab td, .ms-tab th { font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .ms-tab th, .ms-tab td { padding-inline: 7px; white-space: normal; } }
+.ms-tab td[data-c].on, .ms-tab th[data-c].on { color: var(--accent); font-weight: 680; }
+
+/* ---------- copy-to-clipboard ---------- */
+.copywrap { position: relative; }
+.copywrap pre { margin-bottom: 0; }
+.copybtn {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  font: inherit; font-size: 12.5px; line-height: 1;
+  padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.22);
+  background: rgba(255,255,255,.08); color: var(--code-ink);
+  backdrop-filter: blur(2px);
+}
+.copybtn:hover { border-color: var(--accent); color: #fff; background: rgba(255,255,255,.16); }
+.copybtn.done { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- text-training loss diagram ---------- */
+.scrollx { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scroll-hint { display: none; font-size: 12.5px; color: var(--ink-3); margin: 6px 0 14px; }   /* kept apart from the note below */
+.scrollx.scrolls + .scroll-hint { display: block; }   /* shown exactly when the diagram overflows */
+.lossfig { display: block; width: 680px; height: auto; margin: 6px 0 4px; color: var(--ink-3); }   /* fixed size: labels stay readable; the spare width on the right lets a reader's wider letter-spacing fit */
+.lossfig .lf-box { fill: var(--bg); stroke: var(--border-strong); stroke-width: 1; }
+.lossfig .lf-learn { fill: var(--accent-soft); stroke: var(--accent); }
+.lossfig .lf-frozen { fill: var(--bg); stroke-dasharray: 4 3; }
+.lossfig .lf-t { fill: var(--ink-2); font-size: 13px; text-anchor: middle; }
+.lossfig .lf-b { font-weight: 640; fill: var(--ink); }
+.lossfig .lf-s { fill: var(--ink-3); font-size: 12px; text-anchor: middle; }
+.lossfig .lf-left { text-anchor: start; }
+.lossfig .lf-arr { stroke: var(--border-strong); stroke-width: 1.2; fill: none; }
+.lossfig .lf-space { fill: none; stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 5 4; }
+.lossfig .lf-dot { stroke: var(--surface); stroke-width: 2; }
+.lossfig .lf-name { fill: var(--accent); }
+.lossfig .lf-desc { fill: var(--ink-2); }
+.lossfig .lf-other { fill: var(--border-strong); }
+.lossfig .lf-pull { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+.lossfig .lf-push { stroke: var(--ink-3); stroke-width: 1.4; stroke-dasharray: 4 3; fill: none; }
+.lossfig .lf-lab { font-size: 11.5px; fill: var(--ink-3); }
+.lossfig .lf-pullt { fill: var(--accent); font-weight: 620; }
+
+/* ---------- zero-shot split ---------- */
+.zgrp { margin-top: 16px; }
+.zgrp h3 { margin: 0 0 8px; font-size: 12.5px; font-weight: 620; letter-spacing: 0; color: var(--ink-3); }
+.zrow { display: flex; flex-wrap: wrap; gap: 5px; }
+.zc {
+  font-size: 12.5px; line-height: 1; padding: 6px 9px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--ink-3);
+  transition: opacity .15s ease;
+}
+.zc.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 620; }
+.zc.off { background: transparent; border-style: dashed; }   /* excluded, but still legible */
+#zsl .tnote { margin-top: 16px; }
+
+/* no transitions until the first frame is painted, so demos do not fade in from grey on load */
+body.preload *, body.preload *::before, body.preload *::after { transition: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* the map is shown only where it fits at full size (smallest label 10.5px); narrower screens get the list */
+@media (max-width: 960px) {
+  .relmap svg { display: none; }
+  .relmap-list { display: grid; }
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 600px) {
+  .copywrap pre { padding-top: 48px; }   /* room for the Copy button above the first line */
+  .chart .legend { display: flex; }
+    .chart .direct, .chart .leader { display: none; }   /* too small once scaled down; the legend carries identity */
+}
+
+@media (max-width: 600px) {
+  header.hero { padding-block: 44px 32px; }
+  section { padding-block: 40px; }
+  .btn { padding: 8px 15px; font-size: 14px; }
+}
+
+/* ---------- full-size figures, shown in place ---------- */
+.lightbox { padding: 0; border: none; background: transparent; max-width: 96vw; max-height: 94vh; overflow: visible; cursor: zoom-out; }
+.lightbox::backdrop { background: rgba(0, 0, 0, .82); }
+.lightbox img { display: block; max-width: 96vw; max-height: 94vh; width: auto; height: auto; border-radius: 6px; background: #fff; }
+.lightbox .lb-close {
+  position: fixed; top: 12px; right: 14px; width: 40px; height: 40px; border: none; border-radius: 50%;
+  background: rgba(255, 255, 255, .92); color: #1c1b19; font-size: 24px; line-height: 1; cursor: pointer;
+}
+</style>
+</head>
+<body class="preload">
+<a class="skip" href="#main">Skip to content</a>
+
+<nav class="toc" aria-label="On this page">
+  <a href="#abstract">Abstract</a>
+  <a href="#setting">Problem setting</a>
+  <a href="#results">Results</a>
+  <a href="#method">Method</a>
+  <a href="#bibtex">BibTeX</a>
+  <a class="cta" href="https://github.com/wangshouwen/RCNn" target="_blank" rel="noopener">Code &rarr;</a>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <h1 class="title">Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity</h1>
+    <div class="links">
+        <a class="btn" href="https://openaccess.thecvf.com/content/ICCV2025/papers/Wang_Language-Driven_Multi-Label_Zero-Shot_Learning_with_Semantic_Granularity_ICCV_2025_paper.pdf" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1.5A1.5 1.5 0 0 1 4.5 0h4.6L13 3.9v10.6a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 14.5zM9 1v3h3z"/></svg>Paper</a>
+        <a class="btn ghost" href="https://github.com/wangshouwen/RCNn" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.5 15.6c.4.07.55-.17.55-.38v-1.3C3.8 14.35 3.3 13 3.3 13c-.36-.94-.9-1.19-.9-1.19-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.23 1.88.88 2.34.67.07-.52.28-.88.5-1.08-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.03 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0z"/></svg>Code</a>
+        <a class="btn ghost" href="#bibtex"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h9A1.5 1.5 0 0 1 14 2.5v12a.5.5 0 0 1-.76.43L8 11.6l-5.24 3.33A.5.5 0 0 1 2 14.5z"/></svg>BibTeX</a>
+    </div>
+    <div class="hero-abs" id="abstract">
+      <h2>Abstract</h2>
+      <p class="lead">Recent methods learn class-unified prompt contexts by image data to adapt CLIP to zero-shot multi-label image classification, which achieves impressive performance. However, simply tuning prompts is insufficient to deal with novel classes across different semantic granularity levels. This limitation arises due to the sparse semantic detail in prompt class names and the hierarchical granularity competition among class names caused by CLIP's contrastive loss. We propose a language-driven zero-shot multi-label learning framework to bridge associations among classes across multiple granularity levels through class name reconstruction. To achieve this, we first leverage a language model to generate structured text descriptions for each class, which explicitly capture (1) visual attributes, (2) hierarchical relationships, and (3) co-occurrence scenes. With the enriched descriptions, we then learn class names by extracting and aligning semantic relationships and features from them in CLIP's shared image&ndash;text embedding space. Furthermore, we consider that similar text descriptions among different classes may introduce ambiguities. We mitigate these ambiguities by imposing a pair-based loss on learnable class names to enhance their distinctiveness. During inference, we aggregate semantic predictions from multiple image snippets to reinforce the identification of classes across different granularity levels. Comprehensive experiments demonstrate that our method surpasses state-of-the-art methods in multi-label zero-shot learning and effectively handles novel classes across different granularity levels.</p>
+    </div>
+  </div>
+</header>
+
+<div class="masthead">
+  <div class="wrap">
+      <figure class="relmap">
+        <svg viewBox="0 0 900 268" role="img" aria-label="How the three papers relate: SR covers partial labels, PGCL covers partial and single-positive labels, RCNn covers no labels at all. This page is RCNn.">
+          <text class="rm-axis" x="18" y="16">labels available per image</text>
+          <line class="rm-arrow" x1="218" y1="30" x2="882" y2="30" marker-end="url(#rmar)"/>
+          <defs><marker id="rmar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+          <text class="rm-axis" x="876" y="26" text-anchor="end">fewer &rarr;</text>
+          <line class="rm-div" x1="18.0" y1="42" x2="18.0" y2="252"/>
+          <text class="rm-col" x="30.0" y="58">Partial labels</text>
+          <text class="rm-sub" x="30.0" y="74">a few known per image</text>
+          <line class="rm-div" x1="306.0" y1="42" x2="306.0" y2="252"/>
+          <text class="rm-col" x="318.0" y="58">Single positive</text>
+          <text class="rm-sub" x="318.0" y="74">exactly one per image</text>
+          <line class="rm-div" x1="594.0" y1="42" x2="594.0" y2="252"/>
+          <text class="rm-col" x="606.0" y="58">No labels</text>
+          <text class="rm-sub" x="606.0" y="74">zero-shot</text>
+          <a href="../SR/" class="rm-link">
+            <rect class="rm-bar" x="26.0" y="92" width="272.0" height="44" rx="9"/>
+      <text class="rm-name" x="40.0" y="112">SR</text>
+      <text class="rm-meta" x="40.0" y="128">ICCV 2023 &middot; negative dominance &middot; on images</text>
+            <text class="rm-go" x="285.0" y="112" text-anchor="end">&#8599;</text>
+          </a>
+          <a href="../PGCL/" class="rm-link">
+            <rect class="rm-bar" x="26.0" y="150" width="560.0" height="44" rx="9"/>
+      <text class="rm-name" x="40.0" y="170">PGCL</text>
+      <text class="rm-meta" x="40.0" y="186">NN 2025 &middot; visual confusion &middot; on images</text>
+            <text class="rm-go" x="573.0" y="170" text-anchor="end">&#8599;</text>
+          </a>
+          <g>
+            <rect class="rm-bar me" x="602.0" y="208" width="272.0" height="44" rx="9"/>
+      <text class="rm-name me" x="616.0" y="228">RCNn</text>
+      <text class="rm-meta" x="616.0" y="244">ICCV 2025 &middot; semantic granularity &middot; text only</text>
+            <text class="rm-you" x="861.0" y="228" text-anchor="end">THIS PAGE</text>
+          </g>
+        </svg>
+        <ol class="relmap-list">
+          <li><a href="../SR/"><b>SR</b> &middot; partial labels<span>ICCV 2023 &middot; negative dominance &middot; on images</span><i aria-hidden="true">&#8599;</i></a></li>
+          <li><a href="../PGCL/"><b>PGCL</b> &middot; partial and single-positive labels<span>NN 2025 &middot; visual confusion &middot; on images</span><i aria-hidden="true">&#8599;</i></a></li>
+          <li class="me"><div><b>RCNn</b> &middot; no labels (zero-shot)<span>ICCV 2025 &middot; semantic granularity &middot; text only</span><em>this page</em></div></li>
+        </ol>
+      </figure>
+  </div>
+</div>
+
+<main id="main">
+
+  <section id="setting">
+    <div class="wrap">
+      <h2>Problem setting</h2>
+
+      <div class="demo" id="zsl">
+        <p>MS-COCO&#39;s 65 classes are split into 48 seen classes, which methods may train on, and 17 unseen ones, which they may not. Use the buttons to see what is trained on and what each test scores.</p>
+        <div class="demo-ctl ch-tg" id="zsltg" role="group" aria-label="Show">
+          <span>Show</span>
+          <button type="button" class="on" data-v="train">what may be trained on</button>
+          <button type="button" data-v="zsl">ZSL: what is scored</button>
+          <button type="button" data-v="gzsl">GZSL: what is scored</button>
+        </div>
+        <div class="zgrp"><h3>48 seen classes</h3><div class="zrow zseen"><span class="zc s">person</span><span class="zc s">bicycle</span><span class="zc s">car</span><span class="zc s">motorcycle</span><span class="zc s">train</span><span class="zc s">truck</span><span class="zc s">boat</span><span class="zc s">bench</span><span class="zc s">bird</span><span class="zc s">horse</span><span class="zc s">sheep</span><span class="zc s">bear</span><span class="zc s">zebra</span><span class="zc s">giraffe</span><span class="zc s">backpack</span><span class="zc s">handbag</span><span class="zc s">suitcase</span><span class="zc s">frisbee</span><span class="zc s">skis</span><span class="zc s">kite</span><span class="zc s">surfboard</span><span class="zc s">bottle</span><span class="zc s">fork</span><span class="zc s">spoon</span><span class="zc s">bowl</span><span class="zc s">banana</span><span class="zc s">apple</span><span class="zc s">sandwich</span><span class="zc s">orange</span><span class="zc s">broccoli</span><span class="zc s">carrot</span><span class="zc s">pizza</span><span class="zc s">donut</span><span class="zc s">chair</span><span class="zc s">bed</span><span class="zc s">toilet</span><span class="zc s">tv</span><span class="zc s">laptop</span><span class="zc s">mouse</span><span class="zc s">remote</span><span class="zc s">microwave</span><span class="zc s">oven</span><span class="zc s">toaster</span><span class="zc s">refrigerator</span><span class="zc s">book</span><span class="zc s">clock</span><span class="zc s">vase</span><span class="zc s">toothbrush</span></div></div>
+        <div class="zgrp"><h3>17 unseen classes &mdash; no training examples anywhere</h3>
+          <div class="zrow zunseen"><span class="zc u">airplane</span><span class="zc u">bus</span><span class="zc u">cat</span><span class="zc u">dog</span><span class="zc u">cow</span><span class="zc u">elephant</span><span class="zc u">umbrella</span><span class="zc u">tie</span><span class="zc u">snowboard</span><span class="zc u">skateboard</span><span class="zc u">cup</span><span class="zc u">knife</span><span class="zc u">cake</span><span class="zc u">couch</span><span class="zc u">keyboard</span><span class="zc u">sink</span><span class="zc u">scissors</span></div></div>
+        <p class="tnote">MS-COCO uses 48 seen / 17 unseen.<br>NUS-WIDE uses 925 seen / 81 unseen.<br>Open Images uses 7,186 seen / 400 unseen.</p>
+        
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="wrap">
+      <h2>Results</h2>
+      <figure class="chart" data-spec='{"kind": "hbar", "gap": true, "ours": "RCNn (ours)", "xlabel": "score (%)", "toggles": [{"name": "d", "label": "Dataset", "opts": ["MS-COCO"]}, {"name": "t", "label": "Task", "opts": ["ZSL", "GZSL"]}, {"name": "m", "label": "Metric", "opts": ["F1", "P", "R"]}], "views": {"MS-COCO|ZSL|F1": [{"n": "CONSE", "v": 16.2}, {"n": "Fast0Tag", "v": 25.3}, {"n": "Deep0Tag", "v": 37.8}, {"n": "SDL (M=2)", "v": 37.5}, {"n": "DualCoOp", "v": 50.3}, {"n": "TagCLIP*", "v": 47.0}, {"n": "RCNn (ours)", "v": 53.6}], "MS-COCO|ZSL|P": [{"n": "CONSE", "v": 11.4}, {"n": "Fast0Tag", "v": 24.7}, {"n": "Deep0Tag", "v": 26.5}, {"n": "SDL (M=2)", "v": 26.3}, {"n": "DualCoOp", "v": 35.3}, {"n": "TagCLIP*", "v": 33.0}, {"n": "RCNn (ours)", "v": 37.6}], "MS-COCO|ZSL|R": [{"n": "CONSE", "v": 28.3}, {"n": "Fast0Tag", "v": 61.4}, {"n": "Deep0Tag", "v": 65.9}, {"n": "SDL (M=2)", "v": 65.3}, {"n": "DualCoOp", "v": 87.6}, {"n": "TagCLIP*", "v": 81.9}, {"n": "RCNn (ours)", "v": 93.4}], "MS-COCO|GZSL|F1": [{"n": "CONSE", "v": 26.1}, {"n": "Fast0Tag", "v": 42.1}, {"n": "Deep0Tag", "v": 47.3}, {"n": "SDL (M=2)", "v": 59.9}, {"n": "DualCoOp", "v": 62.9}, {"n": "TagCLIP*", "v": 48.6}, {"n": "RCNn (ours)", "v": 60.7}], "MS-COCO|GZSL|P": [{"n": "CONSE", "v": 23.8}, {"n": "Fast0Tag", "v": 38.5}, {"n": "Deep0Tag", "v": 43.2}, {"n": "SDL (M=2)", "v": 59.0}, {"n": "DualCoOp", "v": 58.4}, {"n": "TagCLIP*", "v": 45.1}, {"n": "RCNn (ours)", "v": 56.4}], "MS-COCO|GZSL|R": [{"n": "CONSE", "v": 28.8}, {"n": "Fast0Tag", "v": 46.5}, {"n": "Deep0Tag", "v": 52.2}, {"n": "SDL (M=2)", "v": 60.8}, {"n": "DualCoOp", "v": 68.1}, {"n": "TagCLIP*", "v": 52.7}, {"n": "RCNn (ours)", "v": 65.8}]}}'>
+        <div class="ch-toggles"></div>
+        <div class="ch-plot"></div>
+        <div class="tip" hidden></div>
+        <figcaption><b>MS-COCO</b>: precision, recall and F1 at Top-3.<br><b>GZSL</b> favours baselines trained on seen-class images (RCNn uses none).<br><code class="inline">*</code>: reproduced for the paper.<br>The number after RCNn&#39;s bar is its gap to the best other method.</figcaption>
+      </figure>
+      <figure class="chart" data-spec='{"kind": "hbar", "gap": true, "ours": "RCNn (ours)", "xlabel": "score (%)", "toggles": [{"name": "d", "label": "Dataset", "opts": ["NUS-WIDE", "Open Images"]}, {"name": "t", "label": "Task", "opts": ["ZSL", "GZSL"]}, {"name": "m", "label": "Metric", "opts": ["F1", "mAP"]}], "views": {"NUS-WIDE|ZSL|F1": [{"n": "LESA (M=10)", "v": 31.6}, {"n": "BiAM", "v": 32.7}, {"n": "SDL (M=7)", "v": 30.5}, {"n": "(ML)²-Enc", "v": 32.8}, {"n": "CLIP-FT", "v": 23.5}, {"n": "DualCoOp", "v": 41.3}, {"n": "MKT", "v": 34.1}, {"n": "TagCLIP*", "v": 34.8}, {"n": "CoMC", "v": 41.2}, {"n": "RCNn (ours)", "v": 48.4}], "NUS-WIDE|ZSL|mAP": [{"n": "LESA (M=10)", "v": 19.4}, {"n": "BiAM", "v": 25.9}, {"n": "SDL (M=7)", "v": 25.9}, {"n": "(ML)²-Enc", "v": 29.4}, {"n": "CLIP-FT", "v": 30.5}, {"n": "DualCoOp", "v": 43.6}, {"n": "MKT", "v": 37.6}, {"n": "TagCLIP*", "v": 40.1}, {"n": "CoMC", "v": 48.2}, {"n": "RCNn (ours)", "v": 53.3}], "NUS-WIDE|GZSL|F1": [{"n": "LESA (M=10)", "v": 14.4}, {"n": "BiAM", "v": 15.4}, {"n": "SDL (M=7)", "v": 18.5}, {"n": "(ML)²-Enc", "v": 15.8}, {"n": "CLIP-FT", "v": 20.3}, {"n": "DualCoOp", "v": 19.4}, {"n": "MKT", "v": 22.0}, {"n": "TagCLIP*", "v": 15.1}, {"n": "RCNn (ours)", "v": 19.3}], "NUS-WIDE|GZSL|mAP": [{"n": "LESA (M=10)", "v": 5.6}, {"n": "BiAM", "v": 9.4}, {"n": "SDL (M=7)", "v": 12.1}, {"n": "(ML)²-Enc", "v": 10.2}, {"n": "CLIP-FT", "v": 16.8}, {"n": "DualCoOp", "v": 12.0}, {"n": "MKT", "v": 18.3}, {"n": "TagCLIP*", "v": 12.7}, {"n": "RCNn (ours)", "v": 17.9}], "Open Images|ZSL|F1": [{"n": "LESA (M=10)", "v": 1.4}, {"n": "BiAM", "v": 7.0}, {"n": "SDL (M=7)", "v": 10.7}, {"n": "(ML)²-Enc", "v": 7.5}, {"n": "CLIP-FT", "v": 19.1}, {"n": "MKT", "v": 19.7}, {"n": "TagCLIP*", "v": 12.8}, {"n": "RCNn (ours)", "v": 21.2}], "Open Images|ZSL|mAP": [{"n": "LESA (M=10)", "v": 41.7}, {"n": "BiAM", "v": 65.6}, {"n": "SDL (M=7)", "v": 62.9}, {"n": "(ML)²-Enc", "v": 65.7}, {"n": "CLIP-FT", "v": 66.2}, {"n": "MKT", "v": 68.1}, {"n": "TagCLIP*", "v": 32.0}, {"n": "RCNn (ours)", "v": 70.2}], "Open Images|GZSL|F1": [{"n": "LESA (M=10)", "v": 17.4}, {"n": "BiAM", "v": 14.8}, {"n": "SDL (M=7)", "v": 37.8}, {"n": "(ML)²-Enc", "v": 27.6}, {"n": "CLIP-FT", "v": 40.2}, {"n": "MKT", "v": 40.5}, {"n": "TagCLIP*", "v": 13.5}, {"n": "RCNn (ours)", "v": 24.9}], "Open Images|GZSL|mAP": [{"n": "LESA (M=10)", "v": 45.4}, {"n": "BiAM", "v": 81.7}, {"n": "SDL (M=7)", "v": 75.3}, {"n": "(ML)²-Enc", "v": 79.9}, {"n": "CLIP-FT", "v": 77.5}, {"n": "MKT", "v": 81.4}, {"n": "TagCLIP*", "v": 24.2}, {"n": "RCNn (ours)", "v": 79.2}]}}'>
+        <div class="ch-toggles"></div>
+        <div class="ch-plot"></div>
+        <div class="tip" hidden></div>
+        <figcaption><b>NUS-WIDE and Open Images</b>: F1 at Top-3 (NUS-WIDE) or Top-10 (Open Images), and mAP over all classes.<br>The number after RCNn&#39;s bar is its gap to the best other method.</figcaption>
+      </figure>
+      <details class="more">
+        <summary>Show as tables</summary>
+        <div class="inner">
+      <p class="heatkey">In each column: <b>bold</b> best, <em>italic</em> second.</p>
+      <p class="tcap"><b id="cap-coco">MS-COCO</b> &mdash; precision, recall and F1 (&#37;) at Top-3. <code class="inline">*</code>: reproduced for the paper.</p>
+      <div class="tablewrap">
+        <table aria-labelledby="cap-coco">
+          <thead>
+            <tr class="group"><th></th><th colspan="6" scope="colgroup">MS-COCO</th></tr>
+            <tr class="group"><th></th><th colspan="3" scope="colgroup">ZSL</th><th colspan="3" scope="colgroup">GZSL</th></tr>
+            <tr><th class="l" scope="col">Method</th><th scope="col">P</th><th scope="col">R</th><th scope="col">F1</th><th scope="col">P</th><th scope="col">R</th><th scope="col">F1</th></tr>
+          </thead>
+          <tbody>
+            <tr><th class="l" scope="row">CONSE</th><td>11.4</td><td>28.3</td><td>16.2</td><td>23.8</td><td>28.8</td><td>26.1</td></tr>
+            <tr><th class="l" scope="row">Fast0Tag</th><td>24.7</td><td>61.4</td><td>25.3</td><td>38.5</td><td>46.5</td><td>42.1</td></tr>
+            <tr><th class="l" scope="row">Deep0Tag</th><td>26.5</td><td>65.9</td><td>37.8</td><td>43.2</td><td>52.2</td><td>47.3</td></tr>
+            <tr><th class="l" scope="row">SDL (M=2)</th><td>26.3</td><td>65.3</td><td>37.5</td><td>59.0</td><td>60.8</td><td>59.9</td></tr>
+            <tr><th class="l" scope="row">DualCoOp</th><td>35.3</td><td>87.6</td><td>50.3</td><td>58.4</td><td>68.1</td><td>62.9</td></tr>
+            <tr><th class="l" scope="row">TagCLIP*</th><td>33.0</td><td>81.9</td><td>47.0</td><td>45.1</td><td>52.7</td><td>48.6</td></tr>
+            <tr class="ours"><th class="l" scope="row">RCNn (ours)</th><td>37.6</td><td>93.4</td><td>53.6</td><td>56.4</td><td>65.8</td><td>60.7</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="tcap"><b id="cap-nus">NUS-WIDE and Open Images.</b> F1 at Top-3 (NUS-WIDE) or Top-10 (Open Images), and mAP over all classes. A dash means not reported.</p>
+      <div class="tablewrap">
+        <table aria-labelledby="cap-nus">
+          <thead>
+            <tr class="group"><th></th><th colspan="4" scope="colgroup">NUS-WIDE</th><th colspan="4" scope="colgroup">Open Images</th></tr>
+            <tr class="group"><th></th><th colspan="2" scope="colgroup">ZSL</th><th colspan="2" scope="colgroup">GZSL</th><th colspan="2" scope="colgroup">ZSL</th><th colspan="2" scope="colgroup">GZSL</th></tr>
+            <tr><th class="l" scope="col">Method</th><th scope="col">F1</th><th scope="col">mAP</th><th scope="col">F1</th><th scope="col">mAP</th><th scope="col">F1</th><th scope="col">mAP</th><th scope="col">F1</th><th scope="col">mAP</th></tr>
+          </thead>
+          <tbody>
+            <tr><th class="l" scope="row">LESA (M=10)</th><td>31.6</td><td>19.4</td><td>14.4</td><td>5.6</td><td>1.4</td><td>41.7</td><td>17.4</td><td>45.4</td></tr>
+            <tr><th class="l" scope="row">BiAM</th><td>32.7</td><td>25.9</td><td>15.4</td><td>9.4</td><td>7.0</td><td>65.6</td><td>14.8</td><td>81.7</td></tr>
+            <tr><th class="l" scope="row">SDL (M=7)</th><td>30.5</td><td>25.9</td><td>18.5</td><td>12.1</td><td>10.7</td><td>62.9</td><td>37.8</td><td>75.3</td></tr>
+            <tr><th class="l" scope="row">(ML)&sup2;-Enc</th><td>32.8</td><td>29.4</td><td>15.8</td><td>10.2</td><td>7.5</td><td>65.7</td><td>27.6</td><td>79.9</td></tr>
+            <tr><th class="l" scope="row">CLIP-FT</th><td>23.5</td><td>30.5</td><td>20.3</td><td>16.8</td><td>19.1</td><td>66.2</td><td>40.2</td><td>77.5</td></tr>
+            <tr><th class="l" scope="row">DualCoOp</th><td>41.3</td><td>43.6</td><td>19.4</td><td>12.0</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+            <tr><th class="l" scope="row">MKT</th><td>34.1</td><td>37.6</td><td>22.0</td><td>18.3</td><td>19.7</td><td>68.1</td><td>40.5</td><td>81.4</td></tr>
+            <tr><th class="l" scope="row">TagCLIP*</th><td>34.8</td><td>40.1</td><td>15.1</td><td>12.7</td><td>12.8</td><td>32.0</td><td>13.5</td><td>24.2</td></tr>
+            <tr><th class="l" scope="row">CoMC</th><td>41.2</td><td>48.2</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+            <tr class="ours"><th class="l" scope="row">RCNn (ours)</th><td>48.4</td><td>53.3</td><td>19.3</td><td>17.9</td><td>21.2</td><td>70.2</td><td>24.9</td><td>79.2</td></tr>
+          </tbody>
+        </table>
+      </div>        </div>
+      </details>
+    </div>
+  </section>
+
+  <section id="method">
+    <div class="wrap">
+      <h2>Method</h2>
+
+      <div class="demo">
+        <h3>The issue: web tags are incomplete</h3>
+        <p>Annotators tag at whatever level they care about. A photo of a dog on a beach may be tagged only
+        <b>Golden Retriever</b>; the dashed labels are just as correct, but missing:</p>
+        <div class="gran">
+          <span class="g1">Golden Retriever</span><span class="ar">&rarr;</span>
+          <span class="g2 miss">dog</span><span class="ar">&rarr;</span>
+          <span class="g3 miss">animal</span><span class="ar">scene:</span>
+          <span class="g4 miss">beach</span>
+        </div>
+        <p>A model trained on these images treats every missing tag as absent: it learns that the photo shows no <em>dog</em>, no <em>animal</em> and no <em>beach</em>, so it never connects <em>Golden Retriever</em> to them. RCNn avoids this by learning each class from text. A language model describes every class in three ways:</p>
+        <ul class="kinds">
+          <li><b>How it looks</b> &mdash; golden coat, floppy ears</li>
+          <li><b>What it is a kind of</b> &mdash; a dog, an animal</li>
+          <li><b>Where it appears</b> &mdash; beaches, parks</li>
+        </ul>
+      </div>
+      <figure style="margin-top:26px">
+        <a href="static/teaser.png" target="_blank" rel="noopener" title="Open at full size"><img src="static/teaser.png" width="1778" height="803" loading="lazy" decoding="async" alt="Three multi-label zero-shot learning frameworks compared: separate alignment with GloVe word embeddings, joint alignment with learned prompt contexts, and the proposed text-description-driven alignment."></a>
+        <figcaption><b>Versus prior frameworks.</b> (a) word-embedding alignment and (b) learned prompt contexts both need annotated images; (c) RCNn trains on text descriptions alone.</figcaption>
+      </figure>
+      <figure>
+        <a href="static/pipeline.png" target="_blank" rel="noopener" title="Open at full size"><img src="static/pipeline.png" width="2011" height="574" loading="lazy" decoding="async" alt="The RCNn framework: an LLM generates visual, hierarchical and co-occurrence descriptions per class; learnable class-name tokens are trained against those descriptions through a frozen CLIP text encoder; at inference, predictions from the whole image and from multiple crops are aggregated."></a>
+        <figcaption><b>The framework.</b> <em>Top:</em> an LLM describes every class, and learnable class-name tokens are fitted to those descriptions through CLIP&#39;s frozen text encoder, with no training images. <em>Bottom:</em> at inference, semantic maps from the whole image and its snippets are combined, so classes at every granularity are found.</figcaption>
+      </figure>
+      <div class="cards">
+          <div class="card"><span class="num">01</span><h3>Descriptions, not just names</h3><p>GPT-4o mini describes each class&#39;s look, hierarchy and typical scenes, so even abstract classes like &quot;travel&quot; get concrete meaning.</p></div>
+          <div class="card"><span class="num">02</span><h3>Reconstructed class names</h3><p>Learnable class-name tokens are fitted to those descriptions in CLIP&#39;s shared embedding space. Training uses text only; the image encoder stays frozen.</p></div>
+          <div class="card"><span class="num">03</span><h3>Kept distinguishable</h3><p>Fine-grained classes get near-identical descriptions, so a pair-based loss keeps their learned names apart.</p></div>
+          <div class="card"><span class="num">04</span><h3>Multi-snippet aggregation</h3><p>At test time the image is also cut into 2&times;2 and 3&times;3 snippets; max-pooling their semantic maps catches small objects as well as whole-scene classes.</p></div>
+      </div>
+      <div class="demo">
+        <h3>What RCNn trains on</h3>
+        <p>RCNn never sees a labelled image; it trains on LLM-written descriptions of each class. Pick a class to see real sentences from <code class="inline">redefine_classname/mscoco_post_llm.json</code>.</p>
+        <div class="demo-ctl">
+          <label for="cw">class</label>
+          <select id="cw" class="demo-sel"></select>
+        </div>
+        <div class="desc-cols">
+          <div><h4>Visual attributes<span>what it looks like</span></h4><ul data-k="vis"></ul></div>
+          <div><h4>Hierarchy<span>what it is a kind of</span></h4><ul data-k="hier"></ul></div>
+          <div><h4>Co-occurrence<span>where it shows up</span></h4><ul data-k="cooc"></ul></div>
+        </div>
+        <p class="tnote">The file holds 9,864 sentences for the 65 MS-COCO classes, 6,163 of them hierarchy sentences; eight classes are sampled here.</p>
+        <script type="application/json" class="demo-data">[{"name": "dog", "vis": ["a dog, which has pointed or floppy ears.", "a dog, which has tail (length and shape vary).", "a dog, which has fur coat (varies in color and length)."], "hier": ["a Boxer, which is a dog, which is a pet.", "a Yorkshire Terrier, which is a dog, which is a pet.", "a Rottweiler, which is a dog."], "cooc": ["a dog, which appears together with the Forest - Dense trees, underbrush, and natural light filtering through leaves.", "a dog, which appears together with the Farm - Barns, fields, and farm animals in the background.", "a dog, which appears together with the Backyard - Fenced area with grass, flowers, and garden furniture."]}, {"name": "cat", "vis": ["a cat, which has fur: soft, varied in color and pattern.", "a cat, which has tail: long, flexible, and often expressive of mood.", "a cat, which has fur: soft, dense, and varies in color and pattern."], "hier": ["a Siamese, which is a cat, which is a animal.", "a Bengal, which is a cat, which is a mammal.", "a Norwegian Forest Cat, which is a cat, which is a mammal."], "cooc": ["a cat, which appears together with the Street: Wandering along a sidewalk or sitting on a stoop.", "a cat, which appears together with the Park: Playing on the grass or exploring a path.", "a cat, which appears together with the Art Studio: Among canvases and paint supplies."]}, {"name": "pizza", "vis": ["a pizza, which has toppings distributed on top.", "a pizza, which has melted cheese that is often bubbling or slightly browned.", "a pizza, which has various toppings (e.g., pepperoni, vegetables, mushrooms)."], "hier": ["a pepperoni pizza, which is a pizza.", "a BBQ Chicken, which is a pizza.", "a pepperoni pizza, which is a pizza, which is a fast food."], "cooc": ["a pizza, which appears together with the Cultural Festival - In a vibrant setting with cultural artifacts and decorations.", "a pizza, which appears together with the Food Photography Studio - With professional lighting and props for styling.", "a pizza, which appears together with the Outdoor Patio - In a backyard or cafe with plants and outdoor furniture."]}, {"name": "train", "vis": ["a train, which has metal body, often painted in various colors.", "a train, which has various colors and designs depending on the service.", "a train, which has long, cylindrical body."], "hier": ["a high-speed train, which is a train, which is a vehicles.", "a commuter train, which is a train, which is a vehicles.", "a high-speed train, which is a train, which is a infrastructure."], "cooc": ["a train, which appears together with the Urban Skyline - A train passing through a bustling city with skyscrapers in the background.", "a train, which appears together with the Cultural Landmarks - A train passing by famous landmarks, such as monuments or historical sites.", "a train, which appears together with the Desert Landscape - A train traversing through a desert, with sand dunes and cacti."]}, {"name": "umbrella", "vis": ["a umbrella, which has tip: the pointed end at the top of the canopy..", "a umbrella, which has handle: long, typically straight or slightly curved, for gripping.", "a umbrella, which has portable object."], "hier": ["a clear umbrella, which is a umbrella.", "a automatic open umbrella, which is a umbrella, which is a weather protection.", "a automatic open umbrella, which is a umbrella."], "cooc": ["a umbrella, which appears together with the Flower Garden - A vibrant umbrella contrasting with blooming flowers in a botanical garden.", "a umbrella, which appears together with the Festival or Fair - Colorful umbrellas decorating a lively outdoor event or market.", "a umbrella, which appears together with the Cozy Balcony - An umbrella providing shade on a small balcony adorned with plants and flowers."]}, {"name": "zebra", "vis": ["a zebra, which has mane that is short and erect.", "a zebra, which has long legs and hooves.", "a zebra, which has long legs."], "hier": ["a mountain zebra, which is a zebra.", "a Grevy's zebra, which is a zebra, which is a animal.", "a Burchell's zebra, which is a zebra, which is a animal."], "cooc": ["a zebra, which appears together with the Mountainous Region - Zebras grazing on slopes with a backdrop of mountain peaks.", "a zebra, which appears together with the African Sunset - Silhouetted against a colorful sunset sky.", "a zebra, which appears together with the Rainforest Edge - Zebras at the transition between forest and open land."]}, {"name": "surfboard", "vis": ["a surfboard, which has smooth, hard surface.", "a surfboard, which has long, narrow shape.", "a surfboard, which has smooth, streamlined surface."], "hier": ["a gun board, which is a surfboard, which is a sports equipment.", "a inflatable board, which is a surfboard, which is a water sports gear.", "a wakeboard, which is a surfboard, which is a recreational activities."], "cooc": ["a surfboard, which appears together with the Boardwalk - A lively boardwalk scene with people, shops, and surfboards.", "a surfboard, which appears together with the Coastal Cliffs - Dramatic cliffs overlooking the ocean with a surfboard set against the landscape.", "a surfboard, which appears together with the Lifeguard Station - A lifeguard station on the beach with surfboards leaning against it."]}, {"name": "toaster", "vis": ["a toaster, which has control knobs or buttons for settings.", "a toaster, which has crumb tray for easy cleanup.", "a toaster, which has metal or plastic exterior."], "hier": ["a smart toaster, which is a toaster.", "a retro toaster, which is a toaster, which is a appliance.", "a travel toaster, which is a toaster, which is a kitchenware."], "cooc": ["a toaster, which appears together with the Minimalist Living Space - An open-plan living area with minimal decor, where the toaster is placed on a clean countertop.", "a toaster, which appears together with the Breakfast Nook - A bright, sunny corner with a small table set for breakfast, featuring a toaster, plates, and coffee.", "a toaster, which appears together with the Food Photography Setup - A styled countertop with a toaster, fresh ingredients, and attractive dishware for a food shoot."]}]</script>
+      </div>
+
+      <div class="demo">
+        <h3>How those sentences become a class name</h3>
+        <p>The class name is learnable. It and its descriptions pass through the same frozen CLIP text encoder. The loss pulls the name toward its own descriptions and pushes it away from other class names; without the push, classes with near-identical descriptions, such as Husky and Shiba, would merge.</p>
+        <div class="scrollx"><svg class="lossfig" viewBox="0 0 744 222" role="img" aria-label="Learnable class-name tokens and LLM descriptions pass through a frozen CLIP text encoder; an MSE loss pulls the class name toward its descriptions and a pair-based loss pushes different class names apart.">
+          <rect class="lf-box lf-learn" x="8" y="26" width="152" height="52" rx="8"/>
+          <text class="lf-t lf-b" x="84" y="48">a photo of a [cat]*</text>
+          <text class="lf-s" x="84" y="66">learnable tokens</text>
+
+          <rect class="lf-box" x="8" y="150" width="152" height="52" rx="8"/>
+          <text class="lf-t" x="84" y="172">"a cat, which has</text>
+          <text class="lf-t" x="84" y="188">whiskers..."</text>
+          <text class="lf-s" x="84" y="140">LLM descriptions</text>
+
+          <rect class="lf-box lf-frozen" x="214" y="80" width="118" height="70" rx="8"/>
+          <text class="lf-t lf-b" x="273" y="108">CLIP text</text>
+          <text class="lf-t lf-b" x="273" y="126">encoder</text>
+          <text class="lf-s" x="273" y="144">frozen</text>
+
+          <path class="lf-arr" d="M160 52 L214 98"/>
+          <path class="lf-arr" d="M160 176 L214 132"/>
+
+          <circle class="lf-dot lf-name" cx="430" cy="78" r="9"/>
+          <text class="lf-t lf-left" x="452" y="83">class name  z(c*)</text>
+          <circle class="lf-dot lf-desc" cx="430" cy="160" r="9"/>
+          <text class="lf-t lf-left" x="452" y="165">its descriptions  z(t)</text>
+          <circle class="lf-dot lf-other" cx="560" cy="40" r="9"/>
+          <text class="lf-t lf-left" x="582" y="45">other class names</text>
+
+          <rect class="lf-space" x="342" y="8" width="392" height="204" rx="12"/>
+          <path class="lf-arr" d="M332 115 L412 90"/>
+          <path class="lf-arr" d="M332 115 L412 152"/>
+
+          <path class="lf-pull" d="M430 96 L430 142" marker-end="url(#lfa)" marker-start="url(#lfa)"/>
+          <text class="lf-lab lf-pullt" x="424" y="122" text-anchor="end">pull together</text>
+          <path class="lf-push" d="M443 66 L547 50"/>
+          <text class="lf-lab" x="497" y="32" text-anchor="middle">push apart</text>
+          <defs><marker id="lfa" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="5" markerHeight="5"
+            orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="currentColor"/></marker></defs>
+
+          <text class="lf-s" x="538" y="200" text-anchor="middle">shared image-text embedding space</text>
+        </svg></div>
+        <p class="scroll-hint">Scroll sideways to see the whole diagram &rarr;</p>
+      </div>
+      <div class="demo" id="mssa">
+        <h3 id="ms-title">Multi-snippet aggregation, at inference</h3>
+        <p>In the whole frame a small object is swamped. Scoring snippets separately gives it a tile it can dominate. Switch grids to see how much of a tile each object fills.</p>
+        <div class="ms-body">
+          <div class="ms-wrap">
+            <img src="static/coco/COCO_val2014_000000468005.jpg" width="360" height="538" alt="MS-COCO photo of an elephant filling most of the frame, with people standing on steps behind it and a small backpack among them">
+            <svg class="ms-grid" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="ms-side">
+            <div class="demo-ctl ch-tg" id="mstg" role="group" aria-label="Snippets">
+              <span>Snippets</span>
+              <button type="button" class="on" data-c="">whole image only</button>
+              <button type="button" data-c="2">+ 2&times;2</button>
+              <button type="button" data-c="2,3">+ 2&times;2 and 3&times;3</button>
+            </div>
+            <div class="tablewrap">
+              <table class="ms-tab" aria-labelledby="ms-title" aria-describedby="ms-note">
+                <thead><tr><th class="l" scope="col">Class</th><th data-c="1">whole image</th>
+                <th data-c="2">best 2&times;2</th><th data-c="3">best 3&times;3</th>
+    </tr></thead>
+                <tbody>
+                <tr><th class="l" scope="row">elephant</th><td data-c="1">86.8</td><td data-c="2">96.5</td><td data-c="3">100.0</td></tr>
+                <tr><th class="l" scope="row">person</th><td data-c="1">3.6</td><td data-c="2">14.5</td><td data-c="3">32.6</td></tr>
+                <tr><th class="l" scope="row">backpack</th><td data-c="1">0.4</td><td data-c="2">1.4</td><td data-c="3">3.2</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="tnote" id="msread" aria-live="polite"></p>
+            <p class="tnote" id="ms-note">Each number is the share of a tile covered by the object&#39;s box (&#37;); the 2&times;2 and 3&times;3 columns show the tile it fills most. The elephant&#39;s box misses thin edges of the photo (86.8), nearly fills the bottom-right quarter (96.5) and covers the centre 3&times;3 tile completely (100). Small objects gain far more: the backpack rises from 0.4 to 3.2.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="bibtex">
+    <div class="wrap">
+      <h2>BibTeX</h2>
+      <div class="copywrap">
+        <button type="button" class="copybtn" data-label="Copy" aria-live="polite">Copy</button>
+        <pre><code>@inproceedings{wang2025language,
+  title     = {Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity},
+  author    = {Wang, Shouwen and Wan, Qian and Gao, Junbin and Zeng, Zhigang},
+  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages     = {1968--1978},
+  year      = {2025}
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+</main>
+<script>
+(function () {
+  var nav = document.querySelector('.toc');
+  if (!nav) return;
+  var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
+  var targets = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+  var last = -1, ticking = false;
+
+  function update() {
+    ticking = false;
+    var probe = window.pageYOffset + 100;   // just below the sticky bar
+    var current = -1;   // nothing is active while the reader is still on the title
+    for (var i = 0; i < targets.length; i++) {
+      if (targets[i] && targets[i].offsetTop <= probe) current = i;
+    }
+    // at the very bottom the last section may never reach the probe line
+    if (window.innerHeight + window.pageYOffset >= document.body.scrollHeight - 2) {
+      current = targets.length - 1;
+    }
+    if (current === last) return;
+    last = current;
+    for (var j = 0; j < links.length; j++) {
+      links[j].classList.toggle('active', j === current);
+    }
+    if (current >= 0) {  // keep the active chip in view in the horizontal bar
+      var a = links[current];
+      nav.scrollTo({ left: a.offsetLeft - nav.clientWidth / 2 + a.offsetWidth / 2,
+                    behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+  }
+
+  function onScroll() {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', function () { last = -1; onScroll(); });
+  update();
+})();
+</script>
+
+<script>
+(function () {
+  var PAD = { l: 46, r: 118, t: 16, b: 44 };
+  // draw at the container's own width so text stays 12px on a phone instead of shrinking
+  // (down to a 320px screen; only narrower ones scale the chart down)
+  function width(host) { return Math.max(240, Math.round(host.clientWidth) || 900); }
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e; }
+
+  function nice(vals) {
+    var lo = Math.floor((Math.min.apply(null, vals) - 1) / 5) * 5;
+    var hi = Math.ceil((Math.max.apply(null, vals) + 1) / 5) * 5;
+    return [Math.max(0, lo), hi];
+  }
+
+  function drawLine(spec, view, host, tip, ctx) {
+    var W = width(host), narrow = W < 560;     // narrow: no direct labels, the legend stands in
+    var TOP = PAD.t + 18;                       // room for the y-axis label above the top tick
+    var H = narrow ? 300 : 400, PW = W - PAD.l - (narrow ? 14 : PAD.r), PH = H - TOP - PAD.b;
+    var all = []; view.forEach(function (s) { all = all.concat(s.v); });
+        var r = (spec.ylim && spec.ylim[ctx]) || nice(all), lo = r[0], hi = r[1];   // ylim: a fixed range for one view
+    var n = spec.x.length;
+    var X = function (i) { return PAD.l + i * PW / (n - 1); };
+    var Y = function (v) { return TOP + PH * (hi - v) / (hi - lo); };
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img',
+                          tabindex: 0,
+                          'aria-label': (ctx ? ctx + ': ' : '') + spec.ylabel + ' by ' + spec.xlabel + ', ' +
+                                        spec.x[0] + ' to ' + spec.x[n - 1] + '. ' +
+                                        view.map(function (sv) { return sv.n + ' from ' + sv.v[0] + ' to ' + sv.v[sv.v.length - 1]; }).join('; ') +
+                                        '. Use the left and right arrow keys to read each point.' });
+    for (var t = lo; t <= hi; t += 5) {
+      svg.appendChild(el('line', { class: 'grid', x1: PAD.l, y1: Y(t), x2: PAD.l + PW, y2: Y(t) }));
+      var tx = el('text', { class: 'tick', x: PAD.l - 9, y: Y(t) + 4, 'text-anchor': 'end' });
+      tx.textContent = t; svg.appendChild(tx);
+    }
+    spec.x.forEach(function (lab, i) {
+      var tx = el('text', { class: 'tick', x: X(i), y: TOP + PH + 22, 'text-anchor': 'middle' });
+      tx.textContent = lab; svg.appendChild(tx);
+    });
+    var xl = el('text', { class: 'axis-label', x: PAD.l + PW / 2, y: H - 6, 'text-anchor': 'middle' });
+    xl.textContent = spec.xlabel; svg.appendChild(xl);
+    var yl = el('text', { class: 'axis-label', x: PAD.l - 38, y: PAD.t + 2 });
+    yl.textContent = spec.ylabel; svg.appendChild(yl);
+    svg.appendChild(el('line', { class: 'axis', x1: PAD.l, y1: Y(lo), x2: PAD.l + PW, y2: Y(lo) }));
+
+    var ours = view.filter(function (s) { return s.n === spec.ours; })[0], late = [], dim = spec.dim || [];
+    var ringI = -1;
+    if (ours && spec.ref !== undefined) {
+      // dashed line at the best other score at x[spec.ref]; circle our first point above it
+      var bar = Math.max.apply(null, view.filter(function (s) { return s.n !== spec.ours; })
+                                         .map(function (s) { return s.v[spec.ref]; }));
+      svg.appendChild(el('line', { class: 'ref', x1: X(0), y1: Y(bar), x2: X(n - 1), y2: Y(bar) }));
+      for (var i0 = 0; i0 < n && ours.v[i0] <= bar; i0++);
+      if (i0 < n) { late.push(el('circle', { class: 'ref-ring', cx: X(i0), cy: Y(ours.v[i0]), r: 8 })); ringI = i0; }
+    }
+    if (ours) {
+      // above each of our points, our lead over the next-best method there (smaller type when the points crowd)
+            var gapX = PW / (n - 1), small = gapX < 34, tiny = gapX < 28, edge = tiny ? 8 : 6;
+      ours.v.forEach(function (v, i) {
+        var top = Math.max.apply(null, view.filter(function (s) { return s.n !== spec.ours; })
+                                          .map(function (s) { return s.v[i]; }));
+                var t = el('text', { class: 'margin-lab' + (tiny ? ' tiny' : small ? ' small' : ''),
+                             x: X(i) + (i === 0 ? -edge : i === n - 1 ? edge : 0), y: Y(v) - (i === ringI ? 14 : 12),
+                             'text-anchor': i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle' });   // the end labels stay inside the plot
+        t.textContent = (v >= top ? '+' : '\u2212') + Math.abs(v - top).toFixed(1);
+        late.push(t);
+      });
+    }
+    var cross = el('line', { class: 'crosshair', x1: 0, y1: TOP, x2: 0, y2: Y(lo) });
+    cross.setAttribute('hidden', ''); svg.appendChild(cross);
+
+    var ends = view.map(function (s) { return Y(s.v[s.v.length - 1]); });
+    var ord = ends.map(function (v, i) { return i; }).sort(function (a, b) { return ends[a] - ends[b]; });
+    for (var k = 1; k < ord.length; k++) {
+      if (ends[ord[k]] - ends[ord[k - 1]] < 15) ends[ord[k]] = ends[ord[k - 1]] + 15;
+    }
+    view.forEach(function (s, si) {
+      var mine = s.n === spec.ours;
+      var g = el('g', { class: 'series' + (mine ? ' ours' : '') + (dim.indexOf(s.n) >= 0 ? ' dim' : ''),
+                        style: '--c:var(--s' + (si + 1) + ')' });
+      g.appendChild(el('path', { class: 'line', d: s.v.map(function (v, i) {
+        return (i ? 'L' : 'M') + X(i) + ' ' + Y(v); }).join(' ') }));
+      s.v.forEach(function (v, i) { g.appendChild(el('circle', { class: 'dot', cx: X(i), cy: Y(v), r: 4 })); });
+      // every line is directly labelled, so identity never rests on colour alone
+            // a connector in the line's colour ties each name to its line when the names had to be spread apart
+      var x0 = PAD.l + PW, yl = Y(s.v[s.v.length - 1]);
+      g.appendChild(el('path', { class: 'leader', d: 'M' + (x0 + 6) + ' ' + yl + 'L' + (x0 + 12) + ' ' + ends[si] + 'H' + (x0 + 16) }));
+      var lt = el('text', { class: 'direct', x: x0 + 19, y: ends[si] + 4 });
+      lt.textContent = s.n; g.appendChild(lt);
+      svg.appendChild(g);
+    });
+    
+        late.forEach(function (t) { svg.appendChild(t); });   // last, so no line is drawn over them
+    host.appendChild(svg);
+
+    // phones hide the direct labels (unreadably small once scaled down); this legend stands in
+    var lg = document.createElement('div');
+    lg.className = 'legend';
+    lg.innerHTML = view.map(function (s, si) {
+      return '<span class="lg' + (s.n === spec.ours ? ' me' : '') + (dim.indexOf(s.n) >= 0 ? ' dim' : '') + '" style="--c:var(--s' + (si + 1) + ')">' +
+             s.n + '</span>';
+    }).join('');
+    host.appendChild(lg);
+
+    var cur = -1;
+    function at(i) {
+      cur = i;
+      cross.setAttribute('x1', X(i)); cross.setAttribute('x2', X(i)); cross.removeAttribute('hidden');
+      var best = -Infinity, mine = null;
+      view.forEach(function (s) {
+        if (s.n === spec.ours) mine = s.v[i]; else best = Math.max(best, s.v[i]); });
+      tip.classList.toggle('two', view.length > 10);
+      tip.innerHTML = '<b>' + spec.x[i] + (spec.xlabel.indexOf('known') >= 0 ? '&#37; known labels' : '') + '</b>' +
+        '<div class="rows">' +
+        view.map(function (s, si) { return { n: s.n, v: s.v[i], si: si }; })
+            .sort(function (a, b) { return b.v - a.v; })
+            .map(function (r) {
+              var sw = '<span class="sw" style="background:var(--s' + (r.si + 1) + ')"></span>';
+              return '<div' + (r.n === spec.ours ? ' class="me"' : '') + '>' + sw +
+                     r.n + ' <b>' + r.v.toFixed(1) + '</b></div>'; }).join('') + '</div>' +
+        (mine !== null && best > -Infinity ? '<div style="margin-top:4px">vs best baseline <b>' +
+          (mine - best >= 0 ? '+' : '') + (mine - best).toFixed(1) + '</b></div>' : '');
+      tip.hidden = false;
+      var leftHalf = i < (n - 1) / 2;
+      tip.style.maxWidth = narrow ? '92%' : '';
+      tip.style.left = narrow ? '50%' : (X(i) / W * 100) + '%';
+      tip.style.transform = narrow ? 'translateX(-50%)'
+                          : leftHalf ? 'translateX(14px)' : 'translateX(calc(-100% - 14px))';
+      tip.style.top = (host.offsetTop + 8) + 'px';
+    }
+    function locate(ev) {
+      var b = svg.getBoundingClientRect();
+      var vx = (ev.clientX - b.left) / b.width * W;
+      at(Math.max(0, Math.min(n - 1, Math.round((vx - PAD.l) / (PW / (n - 1))))));
+    }
+    svg.addEventListener('pointermove', locate);
+    svg.addEventListener('pointerdown', locate);
+    function hide() { cross.setAttribute('hidden', ''); tip.hidden = true; }
+    // a touch pointer 'leaves' as soon as the finger lifts, so only a mouse hides on leave;
+    // on touch screens a tap anywhere else hides it (see the listener in the setup below)
+    svg.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse') hide(); });
+    svg.addEventListener('blur', hide);
+    svg.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+      ev.preventDefault();
+      at(cur < 0 ? 0 : Math.max(0, Math.min(n - 1, cur + (ev.key === 'ArrowRight' ? 1 : -1))));
+    });
+  }
+
+  function drawBar(spec, view, host, tip, ctx) {
+    var W = width(host), narrow = W < 560;
+    var RH = 26, GAP = 8, LB = narrow ? 104 : 150;
+    var H = PAD.t + view.length * (RH + GAP) + 34;
+        var PW = W - LB - (narrow ? 44 : 60) - (spec.gap ? 36 : 0);
+    var max = Math.max.apply(null, view.map(function (d) { return d.v; }));
+    var rival = Math.max.apply(null, view.filter(function (d) { return d.n !== spec.ours; }).map(function (d) { return d.v; }));
+    // at most 6 steps, each at least 32px wide so the tick labels never crowd on a phone
+    var step = [5, 10, 20, 25, 50].filter(function (st) { return max / st <= Math.min(6, PW / 32); })[0] || 50;
+    var hi = Math.ceil(max / step) * step;
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img',
+                          'aria-label': (ctx ? ctx + ', ' : '') + spec.xlabel + ': ' +
+                                        view.map(function (d) { return d.n + ' ' + d.v.toFixed(1); }).join('; ') });
+    for (var t = 0; t <= hi; t += step) {
+      svg.appendChild(el('line', { class: 'grid', x1: LB + t / hi * PW, y1: PAD.t - 6,
+                                   x2: LB + t / hi * PW, y2: H - 28 }));
+      var tk = el('text', { class: 'tick', x: LB + t / hi * PW, y: H - 12, 'text-anchor': 'middle' });
+      tk.textContent = Math.round(t); svg.appendChild(tk);
+    }
+    view.forEach(function (d, i) {
+      var y = PAD.t + i * (RH + GAP), mine = d.n === spec.ours;
+      var g = el('g', { class: 'bar' + (mine ? ' ours' : '') });
+      var nm = el('text', { class: 'bar-name', x: LB - 12, y: y + RH / 2 + 4, 'text-anchor': 'end' });
+      nm.textContent = d.n; g.appendChild(nm);
+      g.appendChild(el('rect', { class: 'bar-fill', x: LB, y: y, width: Math.max(1, d.v / hi * PW),
+                                 height: RH, rx: 4 }));
+      var vl = el('text', { class: 'bar-val', x: LB + d.v / hi * PW + 8, y: y + RH / 2 + 4 });
+            vl.textContent = d.v.toFixed(1); g.appendChild(vl);
+      if (mine && spec.gap) {
+        var gp = el('tspan', { class: 'bar-gap', dx: 6 });
+        gp.textContent = (d.v >= rival ? '+' : '\u2212') + Math.abs(d.v - rival).toFixed(1); vl.appendChild(gp);
+      }
+      svg.appendChild(g);
+    });
+    host.appendChild(svg);
+    tip.hidden = true;
+  }
+
+  // redraw a chart whenever its width changes (a rotated phone, a resized window);
+  // the redraw changes only its height, so this cannot loop
+  var ro = window.ResizeObserver && new ResizeObserver(function (entries) {
+    entries.forEach(function (e) {
+      var plot = e.target, w = Math.round(e.contentRect.width);
+      if (w && w !== plot._w) { plot._w = w; plot._render(); }
+    });
+  });
+
+  document.querySelectorAll('.chart[data-spec]').forEach(function (fig) {
+    var spec = JSON.parse(fig.getAttribute('data-spec'));
+    var bar = fig.querySelector('.ch-toggles');
+    var plot = fig.querySelector('.ch-plot');
+    var tip = fig.querySelector('.tip');
+    var pick = spec.toggles.map(function (t) { return t.opts[0]; });
+
+    spec.toggles.forEach(function (t, ti) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ch-tg';
+      wrap.setAttribute('role', 'group'); wrap.setAttribute('aria-label', t.label);
+      wrap.innerHTML = '<span>' + t.label + '</span>';
+      t.opts.forEach(function (o, oi) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.textContent = o;
+        if (oi === 0) b.className = 'on';
+        b.addEventListener('click', function () {
+          pick[ti] = o;
+          wrap.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+          b.classList.add('on');
+          render();
+        });
+        wrap.appendChild(b);
+      });
+      bar.appendChild(wrap);
+    });
+
+    function render() {
+      var view = spec.views[pick.join('|')];
+      plot.innerHTML = ''; tip.hidden = true;
+      if (!view) { plot.textContent = 'no data for this combination'; return; }
+      (spec.kind === 'line' ? drawLine : drawBar)(spec, view, plot, tip, pick.join(', '));
+    }
+    render();
+    plot._render = render; plot._w = plot.clientWidth;
+    document.addEventListener('pointerdown', function (ev) {
+      if (plot.contains(ev.target)) return;
+      tip.hidden = true;
+      var c = plot.querySelector('.crosshair'); if (c) c.setAttribute('hidden', '');
+    });
+    if (ro) ro.observe(plot);
+  });
+})();
+</script>
+
+<script>
+(function () {
+  // --- RCNn: the zero-shot split ---
+  var ztg = document.getElementById('zsltg');
+  if (ztg) {
+    var seen = document.querySelectorAll('.zc.s'), unseen = document.querySelectorAll('.zc.u');
+    function set(list, on) {
+      list.forEach(function (c) { c.classList.toggle('on', on); c.classList.toggle('off', !on); });
+    }
+    function show(mode) {
+      if (mode === 'train') {
+        set(seen, true); set(unseen, false);
+      } else if (mode === 'zsl') {
+        set(seen, false); set(unseen, true);
+      } else {
+        set(seen, true); set(unseen, true);
+      }
+    }
+    ztg.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ztg.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on'); show(b.getAttribute('data-v'));
+      });
+    });
+    show('train');
+  }
+
+  // --- RCNn: multi-snippet aggregation ---
+  var msTg = document.getElementById('mstg');
+  if (msTg) {
+    var grid = document.querySelector('.ms-grid');
+    var read = document.getElementById('msread');
+    var NSM = 'http://www.w3.org/2000/svg';
+    function render(counts) {
+      grid.innerHTML = '';
+      counts.forEach(function (c) {
+        for (var i = 1; i < c; i++) {
+          var o = i * 100 / c;
+          ['v', 'h'].forEach(function (d) {
+            var l = document.createElementNS(NSM, 'line');
+            l.setAttribute('class', 'g' + c);
+            l.setAttribute(d === 'v' ? 'x1' : 'y1', o);
+            l.setAttribute(d === 'v' ? 'x2' : 'y2', o);
+            l.setAttribute(d === 'v' ? 'y1' : 'x1', 0);
+            l.setAttribute(d === 'v' ? 'y2' : 'x2', 100);
+            grid.appendChild(l);
+          });
+        }
+      });
+      var finest = counts.length ? counts[counts.length - 1] : 1;
+      document.querySelectorAll('.ms-tab [data-c]').forEach(function (c) {
+        c.classList.toggle('on', +c.getAttribute('data-c') === finest);
+      });
+      var n = 1 + counts.reduce(function (a, c) { return a + c * c; }, 0);
+      var parts = ['1 whole'].concat(counts.map(function (c) { return c * c + ' from ' + c + '×' + c; }));
+      read.innerHTML = '<b>' + n + ' encode' + (n > 1 ? 's' : '') + ' per image</b> (' + parts.join(' + ') + ').' +
+        (counts.length
+          ? ' The highlighted column is each object&#39;s best tile here.'
+          : ' Every object is measured against the whole frame, so the small ones are swamped.');
+    }
+    msTg.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        msTg.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+        var v = b.getAttribute('data-c');
+        render(v ? v.split(',').map(Number) : []);
+      });
+    });
+    render([]);
+  }
+
+  // --- RCNn: descriptions grouped by type ---
+  var sel = document.querySelector('.demo-sel');
+  if (sel) {
+    var data = JSON.parse(document.querySelector('.demo-data').textContent);
+    data.forEach(function (d, i) { var o = document.createElement('option'); o.value = i; o.textContent = d.name; sel.appendChild(o); });
+    function show() {
+      var d = data[+sel.value];
+      document.querySelectorAll('.desc-cols ul').forEach(function (ul) {
+        ul.innerHTML = d[ul.getAttribute('data-k')].map(function (t) { return '<li>' + t + '</li>'; }).join('');
+      });
+    }
+    sel.addEventListener('change', show); show();
+  }
+})();
+</script>
+
+<script>
+(function () {
+  document.querySelectorAll('.copybtn').forEach(function (btn) {
+    var pre = btn.parentElement.querySelector('pre');
+    btn.addEventListener('click', function () {
+      var text = pre.innerText;
+      function ok() {
+        btn.textContent = 'Copied';
+        btn.classList.add('done');
+        setTimeout(function () {
+          btn.textContent = btn.getAttribute('data-label');
+          btn.classList.remove('done');
+        }, 1600);
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(ok, fallback);
+      } else {
+        fallback();
+      }
+      function fallback() {          // file:// and other non-secure contexts
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); ok(); }
+        catch (e) { btn.textContent = 'Press Ctrl+C'; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+})();
+
+/* ---------- sideways scrollers: focusable only when they actually scroll ---------- */
+(function () {
+  var boxes = document.querySelectorAll('.tablewrap, .scrollx');
+  function update() {
+    boxes.forEach(function (b) {
+      var scrolls = b.scrollWidth > b.clientWidth + 1;
+      b.classList.toggle('scrolls', scrolls);
+      if (scrolls) {
+        b.setAttribute('tabindex', '0'); b.setAttribute('role', 'region');
+        b.setAttribute('aria-label', (b.classList.contains('scrollx') ? 'Diagram' : 'Table') + ', scrolls sideways');
+      } else {
+        b.removeAttribute('tabindex'); b.removeAttribute('role'); b.removeAttribute('aria-label');
+      }
+    });
+  }
+  update();
+  window.addEventListener('resize', update);
+  document.querySelectorAll('details').forEach(function (d) { d.addEventListener('toggle', update); });
+})();
+
+/* ---------- toggle state for screen readers ---------- */
+(function () {
+  function sync(group) {
+    group.querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.classList.contains('on') ? 'true' : 'false');
+    });
+  }
+  document.querySelectorAll('.ch-tg').forEach(sync);
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('.ch-tg button');
+    if (b) sync(b.parentNode);
+  });
+})();
+
+/* ---------- best / second-best ----------
+   Bold the best and italicise the second-best value in each column. A dataset
+   heading row (tr.block) starts a new block, and each block is ranked on its
+   own. Ties share the mark; dashes are skipped. */
+(function () {
+  document.querySelectorAll('details.more table').forEach(function (table) {
+    var blocks = [[]];
+    table.querySelectorAll('tbody tr').forEach(function (tr) {
+      if (tr.classList.contains('block')) { if (blocks[blocks.length - 1].length) blocks.push([]); return; }
+      blocks[blocks.length - 1].push(tr);
+    });
+    blocks.forEach(function (rows) {
+      var cols = [];
+      rows.forEach(function (tr) {
+        tr.querySelectorAll('td:not(.l)').forEach(function (td, j) {
+          var v = parseFloat(td.textContent);
+          if (!isNaN(v)) (cols[j] = cols[j] || []).push({ td: td, v: v });
+        });
+      });
+      cols.forEach(function (cells) {
+        var vs = cells.map(function (c) { return c.v; });
+        var ranked = vs.filter(function (v, i) { return vs.indexOf(v) === i; })
+                       .sort(function (a, b) { return b - a; });
+        cells.forEach(function (c) {
+          if (c.v === ranked[0]) c.td.classList.add('best');
+          else if (c.v === ranked[1]) c.td.classList.add('second');
+        });
+      });
+    });
+  });
+})();
+
+/* demos have drawn their first state; let later changes animate */
+requestAnimationFrame(function () {
+  requestAnimationFrame(function () { document.body.classList.remove('preload'); });
+});
+</script>
+
+<dialog class="lightbox" aria-label="Full-size figure"><button type="button" class="lb-close" aria-label="Close">&times;</button><img alt=""></dialog>
+<script>
+/* figures open full size over the page; ctrl/cmd-click still opens a new tab, and without <dialog> the plain link stays */
+(function () {
+  var dlg = document.querySelector('.lightbox');
+  if (!dlg || !dlg.showModal) return;
+  var big = dlg.querySelector('img');
+  document.querySelectorAll('figure > a[href^="static/"]').forEach(function (a) {
+    a.addEventListener('click', function (ev) {
+      if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
+      ev.preventDefault();
+      var small = a.querySelector('img');
+      big.src = a.getAttribute('href');
+      big.alt = small ? small.alt : '';
+      dlg.showModal();
+    });
+  });
+  dlg.addEventListener('click', function () { dlg.close(); });   // a click anywhere, the image included, closes it
+  dlg.addEventListener('close', function () { big.removeAttribute('src'); });
+})();
+</script>
+</body>
+</html>

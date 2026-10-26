@@ -1,6 +1,9 @@
 # Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity
 
-Official PyTorch implementation of "Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity" [ICCV 2025](https://openaccess.thecvf.com/content/ICCV2025/html/Wang_Language-Driven_Multi-Label_Zero-Shot_Learning_with_Semantic_Granularity_ICCV_2025_paper.html)
+[![Paper](https://img.shields.io/badge/paper-ICCV%202025-4b3bc4.svg)](https://openaccess.thecvf.com/content/ICCV2025/html/Wang_Language-Driven_Multi-Label_Zero-Shot_Learning_with_Semantic_Granularity_ICCV_2025_paper.html)
+[![Project page](https://img.shields.io/badge/project-page-1c1b19.svg)](https://wangshouwen.github.io/RCNn/)
+
+Official PyTorch implementation of "Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity"
 
 > Recent methods learn class-unified prompt contexts by image data to adapt CLIP to zero-shot multi-label image classification, which achieves impressive performance.
 However, simply tuning prompts is insufficient to deal with novel classes across different semantic granularity levels. This limitation arises due to the sparse semantic detail in prompt class names and the hierarchical granularity competition among class names caused by CLIP’s contrastive loss.
@@ -13,7 +16,7 @@ During inference, we aggregate semantic predictions from multiple image snippets
 Comprehensive experiments demonstrate that our method surpasses state-of-the-art methods in multi-label zero-shot learning and effectively handles novel classes across different granularity levels.
 
 ## Pipeline
-![Pipeline](assets/pipeline.png)
+![Pipeline](docs/static/pipeline.png)
 
 ## Data Preparation
 
@@ -55,13 +58,13 @@ TEXT_PATH
 
 ## Training and Evaluation
 
-``` shell
+```shell
 bash coco.sh
 ```
 
 or
 
-```
+```shell
 bash nuswide.sh
 ```
 
@@ -69,10 +72,10 @@ bash nuswide.sh
 If you find it helpful, please consider citing
 ```bibtex
 @inproceedings{wang2025language,
-  title={Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity},
-  author={Wang, Shouwen and Wan, Qian and Gao, Junbin and Zeng, Zhigang},
-  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-  pages={1968--1978},
-  year={2025}
+  title     = {Language-Driven Multi-Label Zero-Shot Learning with Semantic Granularity},
+  author    = {Wang, Shouwen and Wan, Qian and Gao, Junbin and Zeng, Zhigang},
+  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  pages     = {1968--1978},
+  year      = {2025}
 }
 ```
